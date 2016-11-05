@@ -46,6 +46,7 @@ int main(int argc,char** argv){
 	feat = FastFeatureDetector();
 
 	Mat transform;
+	
 	while(true){
 		cap >> feed;
 		resize(feed,feed,imgSize);
@@ -113,6 +114,16 @@ int main(int argc,char** argv){
 							}
 						}
 						line(frame,srcPts[i],dstPts[i],Scalar(blue,green,red));
+					}
+				}
+
+				Mat thing = (Mat_<double>(3,1) << 320,240,1);
+
+				Mat where = transform * thing;
+
+				for(int i = -4;i <= 4;i++){
+					for(int j = -4;j <= 4;j++){
+						frame.at<Vec3b>((int)where.at<double>(1,0)+j,(int)where.at<double>(0,0)+i) = Vec3b(0,0,0);
 					}
 				}
 			}

@@ -14,6 +14,7 @@ using namespace cv;
 CvSize imgSize = {640,480};
 
 int ptMode = 0;
+int outlierMode = 0;
 
 int main(int argc,char** argv){
 	Mat feed;
@@ -44,6 +45,7 @@ int main(int argc,char** argv){
 
 	feat = FastFeatureDetector();
 
+	Mat transform;
 	while(true){
 		cap >> feed;
 		resize(feed,feed,imgSize);
@@ -71,13 +73,50 @@ int main(int argc,char** argv){
 			//calcOpticalFlowPyrLK(prevFeed,feed,prevFeatures,feats,status,err);
 			calcOpticalFlowPyrLK(prevFeed,feed,prevFeatures,validFeatures,status,err);
 		
-			for(int i = 0;i < status.size();i++){
-				if(status[i] == 1){
+			vector<Point2f> srcPts;
+			vector<Point2f> dstPts;
+			Mat mask;
+
+
+			if(status.size() > 0){
+				for(int i = 0;i < status.size();i++){
+					if(status[i] == 1){
+						srcPts.push_back(Point2f(prevFeatures[i].x,prevFeatures[i].y));
+						dstPts.push_back(Point2f(validFeatures[i].x,validFeatures[i].y));
+						//if(ptMode == 2){
+						//	line(frame,prevFeatures[i],validFeatures[i],Scalar(0,255,255));
+						//}
+					}
+				}
+
+				Mat homograph = findHomography(srcPts,dstPts,CV_RANSAC,1,mask);
+			
+				if(transform.empty()){
+					transform = homograph.clone();
+				} else {
+					transform = transform * homograph;
+				}
+
+				for(int i = 0;i < srcPts.size();i++){
 					if(ptMode == 2){
-						line(frame,prevFeatures[i],validFeatures[i],Scalar(0,255,255));
+						int red = 0;
+						int green = 0;
+						int blue = 0;
+						if(outlierMode == 0){
+							green = 255;
+							red = 255;
+						} else {
+							if(mask.at<uchar>(i,1) == 1){
+								green = 255;
+							} else {
+								red = 255;
+							}
+						}
+						line(frame,srcPts[i],dstPts[i],Scalar(blue,green,red));
 					}
 				}
 			}
+		
 		}	
 
 		prevFeatures = feats;
@@ -88,6 +127,7 @@ int main(int argc,char** argv){
 		int key = waitKey(10);
 		if(key != -1){
 			if(key == 102) ptMode = (ptMode + 1) % 3;
+			if(key == 's') outlierMode = (outlierMode + 1) % 2;
 		}
 	}
 

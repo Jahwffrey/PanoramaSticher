@@ -133,8 +133,6 @@ int main(int argc,char** argv){
 					}
 				}
 				
-				//Mat thing = (Mat_<double>(3,1) << 320,240,1);
-
 				for(int i = 0;i < augs.size();i++){
 					if(augs[i].at<double>(2,0) == -1){
 						Mat invertMat;
@@ -144,12 +142,26 @@ int main(int argc,char** argv){
 						reverse = invertMat * reverse;
 						augs[i] = reverse.clone();
 					}
-					Mat where = transform * augs[i];
-					for(int i = -4;i <= 4;i++){
+					//Mat where = transform * augs[i];
+					
+					vector<Point2f> pts;
+					pts.push_back(Point2f(320,240));
+					
+					vector<Point2f> out_pts(pts.size());
+					Mat out(out_pts);
+					perspectiveTransform(Mat(pts),out,transform);
+					
+					/*for(int i = -4;i <= 4;i++){
 						for(int j = -4;j <= 4;j++){
 							frame.at<Vec3b>((int)where.at<double>(1,0)+j,(int)where.at<double>(0,0)+i) = Vec3b(0,0,0);
 						}
+					}*/
+					for(int i = -4;i <= 4;i++){
+						for(int j = -4;j <= 4;j++){
+							frame.at<Vec3b>(out_pts[0].y + j,out_pts[0].x + i) = Vec3b(0,0,0);
+						}
 					}
+
 				}
 			}
 		

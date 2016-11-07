@@ -16,6 +16,16 @@ CvSize imgSize = {640,480};
 int ptMode = 0;
 int outlierMode = 0;
 
+//vector<Mat_<double>(3,1)> augs;
+vector<Mat> augs;
+
+void mouseFunc(int evnt,int x,int y,int flags,void* data){
+	if(evnt == EVENT_LBUTTONDOWN){
+		Mat tmp = (Mat_<double>(3,1) << x,y,-1); 
+		augs.push_back(tmp);
+	}
+}
+
 int main(int argc,char** argv){
 	Mat feed;
 	Mat prevFeed;
@@ -23,24 +33,30 @@ int main(int argc,char** argv){
 	VideoCapture cap;
 	FastFeatureDetector feat;
 
-	int hasVid = 0;
 
 	//Open video
-	if(argc!=2){
-		std::cout << "Please number of camera to read from\n";
-		exit(0);
-	} else {
-		cap = VideoCapture(atoi(argv[1]));
-	}
+	//if(argc!=2){
+	//	std::cout << "Please number of camera to read from\n";
+	//	exit(0);
+	//} else {
+		//cap = VideoCapture(atoi(argv[1]));
+		if(argc != 2){
+			std::cout << "Video file not provided, using camera 0\n";
+			cap = VideoCapture(0);
+		} else {
+			cap = VideoCapture(argv[1]);
+		}
+
+	//}
 
 	if(!cap.isOpened()){
 		std::cout << "Video capture failed to open\n";
 		exit(1);	
 	}
 
-	for(int i = 0;i < 30;i++){
-		std::cout << "MAKE IT ACCEPT A VIDEO FILE FEED!!!!!!!!!\n";
-	}
+	namedWindow("MainWindow",1);
+
+	setMouseCallback("MainWindow",mouseFunc,NULL);
 
 
 	feat = FastFeatureDetector();
@@ -116,14 +132,23 @@ int main(int argc,char** argv){
 						line(frame,srcPts[i],dstPts[i],Scalar(blue,green,red));
 					}
 				}
+				
+				//Mat thing = (Mat_<double>(3,1) << 320,240,1);
 
-				Mat thing = (Mat_<double>(3,1) << 320,240,1);
-
-				Mat where = transform * thing;
-
-				for(int i = -4;i <= 4;i++){
-					for(int j = -4;j <= 4;j++){
-						frame.at<Vec3b>((int)where.at<double>(1,0)+j,(int)where.at<double>(0,0)+i) = Vec3b(0,0,0);
+				for(int i = 0;i < augs.size();i++){
+					if(augs[i].at<double>(2,0) == -1){
+						Mat invertMat;
+						invert(transform,invertMat);
+						Mat reverse = augs[i].clone();
+						reverse.at<double>(2,0) = 1;
+						reverse = invertMat * reverse;
+						augs[i] = reverse.clone();
+					}
+					Mat where = transform * augs[i];
+					for(int i = -4;i <= 4;i++){
+						for(int j = -4;j <= 4;j++){
+							frame.at<Vec3b>((int)where.at<double>(1,0)+j,(int)where.at<double>(0,0)+i) = Vec3b(0,0,0);
+						}
 					}
 				}
 			}
@@ -133,7 +158,7 @@ int main(int argc,char** argv){
 		prevFeatures = feats;
 		prevFeed = feed.clone(); 
 		
-		imshow("Whaddap",frame);
+		imshow("MainWindow",frame);
 
 		int key = waitKey(10);
 		if(key != -1){

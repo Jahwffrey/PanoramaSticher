@@ -17,12 +17,14 @@ int ptMode = 0;
 int outlierMode = 0;
 
 vector<Mat> augs;
+vector<Point2f> prePts;
 vector<Point2f> usrPts;
 
 void mouseFunc(int evnt,int x,int y,int flags,void* data){
 	if(evnt == EVENT_LBUTTONDOWN){
 		Mat tmp = (Mat_<double>(3,1) << x,y,1); 
 		augs.push_back(tmp);
+		prePts.push_back(Point2f(x,y));
 	}
 }
 
@@ -133,13 +135,26 @@ int main(int argc,char** argv){
 					}
 				}
 			
-				while(augs.size() > 0){
+				/*while(augs.size() > 0){
 					Mat pt = augs[augs.size() - 1];
 					Mat invertMat;
 					invert(transform,invertMat);
 					pt = invertMat * pt;	
 					usrPts.push_back(Point2f(pt.at<double>(0,0),pt.at<double>(1,0)));
 					augs.pop_back();
+				}*/
+
+				if(prePts.size() > 0){
+					Mat invertMat;
+					vector<Point2f> newPts(prePts.size());
+					Mat npts(newPts);
+					invert(transform,invertMat);
+					perspectiveTransform(Mat(prePts),npts,invertMat);	
+					for(int i = 0;i < newPts.size();i++){
+						usrPts.push_back(Point2f(newPts[i].x,newPts[i].y));
+						augs.pop_back();
+						prePts.pop_back();
+					}
 				}
 
 				vector<Point2f> out_pts(usrPts.size());

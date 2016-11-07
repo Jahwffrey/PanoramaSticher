@@ -12,18 +12,16 @@ using namespace cv;
 
 //eww global
 CvSize imgSize = {640,480};
+CvSize bigSize = {1280,960};
 
 int ptMode = 0;
 int outlierMode = 0;
 
-vector<Mat> augs;
 vector<Point2f> prePts;
 vector<Point2f> usrPts;
 
 void mouseFunc(int evnt,int x,int y,int flags,void* data){
 	if(evnt == EVENT_LBUTTONDOWN){
-		Mat tmp = (Mat_<double>(3,1) << x,y,1); 
-		augs.push_back(tmp);
 		prePts.push_back(Point2f(x,y));
 	}
 }
@@ -31,6 +29,8 @@ void mouseFunc(int evnt,int x,int y,int flags,void* data){
 int main(int argc,char** argv){
 	Mat feed;
 	Mat prevFeed;
+
+	Mat fullImg;
 	vector<Point2f> prevFeatures;
 	VideoCapture cap;
 	FastFeatureDetector feat;
@@ -108,13 +108,15 @@ int main(int argc,char** argv){
 					}
 				}
 
-				Mat homograph = findHomography(srcPts,dstPts,CV_RANSAC,1,mask);
-			
+				Mat homograph = findHomography(srcPts,dstPts,CV_RANSAC,0.2,mask);
 				if(transform.empty()){
 					transform = homograph.clone();
 				} else {
 					transform = transform * homograph;
 				}
+
+				Mat invertMat;
+				invert(transform,invertMat);
 
 				for(int i = 0;i < srcPts.size();i++){
 					if(ptMode == 2){
@@ -135,24 +137,13 @@ int main(int argc,char** argv){
 					}
 				}
 			
-				/*while(augs.size() > 0){
-					Mat pt = augs[augs.size() - 1];
-					Mat invertMat;
-					invert(transform,invertMat);
-					pt = invertMat * pt;	
-					usrPts.push_back(Point2f(pt.at<double>(0,0),pt.at<double>(1,0)));
-					augs.pop_back();
-				}*/
-
 				if(prePts.size() > 0){
-					Mat invertMat;
+
 					vector<Point2f> newPts(prePts.size());
 					Mat npts(newPts);
-					invert(transform,invertMat);
 					perspectiveTransform(Mat(prePts),npts,invertMat);	
 					for(int i = 0;i < newPts.size();i++){
 						usrPts.push_back(Point2f(newPts[i].x,newPts[i].y));
-						augs.pop_back();
 						prePts.pop_back();
 					}
 				}
@@ -161,20 +152,27 @@ int main(int argc,char** argv){
 				Mat out(out_pts);
 				perspectiveTransform(Mat(usrPts),out,transform);
 				for(int k = 0;k < out_pts.size();k++){
-					for(int i = -4;i <= 4;i++){
-						for(int j = -4;j <= 4;j++){
-							frame.at<Vec3b>(out_pts[k].y + j,out_pts[k].x + i) = Vec3b(0,0,0);
+					Point2f pos = out_pts[k];
+					if(!(pos.x < 0 || pos.x > imgSize.width)){
+						if(!(pos.y < 0 || pos.y > imgSize.height)){
+							for(int i = -4;i <= 4;i++){
+								for(int j = -4;j <= 4;j++){
+									frame.at<Vec3b>(out_pts[k].y + j,out_pts[k].x + i) = Vec3b(255,0,255);
+								}
+							}
 						}
 					}
 				}
 
+				Mat warpFrame;
+				warpPerspective(frame,warpFrame,invertMat,bigSize);
+				imshow("wat",warpFrame);
 			}
-		
 		}	
 
 		prevFeatures = feats;
 		prevFeed = feed.clone(); 
-		
+	
 		imshow("MainWindow",frame);
 
 		int key = waitKey(10);

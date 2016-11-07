@@ -16,12 +16,12 @@ CvSize imgSize = {640,480};
 int ptMode = 0;
 int outlierMode = 0;
 
-//vector<Mat_<double>(3,1)> augs;
 vector<Mat> augs;
+vector<Point2f> usrPts;
 
 void mouseFunc(int evnt,int x,int y,int flags,void* data){
 	if(evnt == EVENT_LBUTTONDOWN){
-		Mat tmp = (Mat_<double>(3,1) << x,y,-1); 
+		Mat tmp = (Mat_<double>(3,1) << x,y,1); 
 		augs.push_back(tmp);
 	}
 }
@@ -132,37 +132,27 @@ int main(int argc,char** argv){
 						line(frame,srcPts[i],dstPts[i],Scalar(blue,green,red));
 					}
 				}
-				
-				for(int i = 0;i < augs.size();i++){
-					if(augs[i].at<double>(2,0) == -1){
-						Mat invertMat;
-						invert(transform,invertMat);
-						Mat reverse = augs[i].clone();
-						reverse.at<double>(2,0) = 1;
-						reverse = invertMat * reverse;
-						augs[i] = reverse.clone();
-					}
-					//Mat where = transform * augs[i];
-					
-					vector<Point2f> pts;
-					pts.push_back(Point2f(320,240));
-					
-					vector<Point2f> out_pts(pts.size());
-					Mat out(out_pts);
-					perspectiveTransform(Mat(pts),out,transform);
-					
-					/*for(int i = -4;i <= 4;i++){
-						for(int j = -4;j <= 4;j++){
-							frame.at<Vec3b>((int)where.at<double>(1,0)+j,(int)where.at<double>(0,0)+i) = Vec3b(0,0,0);
-						}
-					}*/
+			
+				while(augs.size() > 0){
+					Mat pt = augs[augs.size() - 1];
+					Mat invertMat;
+					invert(transform,invertMat);
+					pt = invertMat * pt;	
+					usrPts.push_back(Point2f(pt.at<double>(0,0),pt.at<double>(1,0)));
+					augs.pop_back();
+				}
+
+				vector<Point2f> out_pts(usrPts.size());
+				Mat out(out_pts);
+				perspectiveTransform(Mat(usrPts),out,transform);
+				for(int k = 0;k < out_pts.size();k++){
 					for(int i = -4;i <= 4;i++){
 						for(int j = -4;j <= 4;j++){
-							frame.at<Vec3b>(out_pts[0].y + j,out_pts[0].x + i) = Vec3b(0,0,0);
+							frame.at<Vec3b>(out_pts[k].y + j,out_pts[k].x + i) = Vec3b(0,0,0);
 						}
 					}
-
 				}
+
 			}
 		
 		}	

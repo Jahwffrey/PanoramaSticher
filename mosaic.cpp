@@ -165,7 +165,8 @@ int main(int argc,char** argv){
 				}
 
 				Mat warpFrame;
-				warpPerspective(frame,warpFrame,invertMat,bigSize);
+				Mat offset = (Mat_<double>(3,3) << 1,0,imgSize.width - imgSize.width/2,0,1,imgSize.height - imgSize.height/2,0,0,1);
+				warpPerspective(frame,warpFrame,offset * invertMat,bigSize);
 				imshow("wat",warpFrame);
 			}
 		}	

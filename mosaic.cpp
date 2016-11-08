@@ -7,18 +7,23 @@
 #include <fstream>
 
 #define RADS 57.2958
+#define imW 320//640
+#define imH 240//480
 
 using namespace cv;
 
 //eww global
-CvSize imgSize = {640,480};
-CvSize bigSize = {1280,960};
+//CvSize imgSize = {640,480};
+CvSize imgSize = {imW,imH};
+//CvSize bigSize = {3200,1440};
+CvSize bigSize = {imW*5,imH*3};
 
 int ptMode = 0;
 int outlierMode = 0;
 
 vector<Point2f> prePts;
 vector<Point2f> usrPts;
+vector<Point2f> panoPts;
 
 void mouseFunc(int evnt,int x,int y,int flags,void* data){
 	if(evnt == EVENT_LBUTTONDOWN){
@@ -69,6 +74,7 @@ int main(int argc,char** argv){
 		cap >> feed;
 		resize(feed,feed,imgSize);
 		Mat frame = feed.clone();
+		Mat dispFrame = feed.clone();
 
 		vector<KeyPoint> features;
 		vector<Point2f> feats;
@@ -144,6 +150,7 @@ int main(int argc,char** argv){
 					perspectiveTransform(Mat(prePts),npts,invertMat);	
 					for(int i = 0;i < newPts.size();i++){
 						usrPts.push_back(Point2f(newPts[i].x,newPts[i].y));
+						panoPts.push_back(Point2f(newPts[i].x,newPts[i].y));
 						prePts.pop_back();
 					}
 				}
@@ -165,9 +172,48 @@ int main(int argc,char** argv){
 				}
 
 				Mat warpFrame;
-				Mat offset = (Mat_<double>(3,3) << 1,0,imgSize.width - imgSize.width/2,0,1,imgSize.height - imgSize.height/2,0,0,1);
+				//Mat grayImg;
+				Mat offset = (Mat_<double>(3,3) << 1,0,bigSize.width/2 - imgSize.width/2,0,1,bigSize.height/2 - imgSize.height/2,0,0,1);
 				warpPerspective(frame,warpFrame,offset * invertMat,bigSize);
-				imshow("wat",warpFrame);
+				//cvtColor(warpFrame,grayImg,CV_BGR2GRAY);
+				//threshold(grayImg,grayImg,20,255,THRESH_BINARY);
+				if(!fullImg.empty()){
+					//fullImg.copyTo(warpFrame,fullImg);
+					//addWeighted(fullImg,0.5,warpFrame,0.5,0,fullImg);
+					Mat grayImg;
+					Mat warpGray;
+					cvtColor(warpFrame,warpGray,CV_BGR2GRAY);
+					cvtColor(fullImg,grayImg,CV_BGR2GRAY);
+					/*for(int i = 0;i < grayImg.rows;i++){
+						for(int j = 0;j < grayImg.cols;j++){
+							if(warpGray.at<unsigned char>(i,j) > grayImg.at<unsigned char>(i,j)){
+								fullImg.at<Vec3b>(i,j) = warpFrame.at<Vec3b>(i,j);
+							}
+						}
+					}*/
+
+					compare(warpGray,grayImg,grayImg,CMP_GT);
+					warpFrame.copyTo(fullImg,grayImg);
+
+					for(int k = 0;k < panoPts.size();k++){
+						Point2f pos = panoPts[k];
+						pos.x = pos.x + bigSize.width/2 - imgSize.width/2;
+						pos.y = pos.y + bigSize.height/2 - imgSize.height/2;
+						if(!(pos.x < 0 || pos.x > bigSize.width)){
+							if(!(pos.y < 0 || pos.y > bigSize.height)){
+								circle(fullImg,pos,5,Scalar(255,0,255),-1);
+								/*for(int i = -4;i <= 4;i++){
+									for(int j = -4;j <= 4;j++){
+										fullImg.at<Vec3b>(pos.y + j,pos.x + i) = Vec3b(255,0,255);
+									}
+								}*/
+							}
+						}
+					}
+				} else {
+					fullImg = warpFrame.clone();
+				}
+				imshow("wat",fullImg);
 			}
 		}	
 

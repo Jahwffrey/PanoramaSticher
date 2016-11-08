@@ -70,8 +70,7 @@ int main(int argc,char** argv){
 
 	Mat transform;
 	
-	while(true){
-		cap >> feed;
+	while(cap.read(feed)){
 		resize(feed,feed,imgSize);
 		Mat frame = feed.clone();
 		Mat dispFrame = feed.clone();
@@ -83,11 +82,11 @@ int main(int argc,char** argv){
 			//Vec3b pixel = feed.at<Vec3b>(features[i].pt.y,features[i].pt.x);
 			Vec3b pixel = Vec3b(0,255,255);
 			if(ptMode == 1){
-				frame.at<Vec3b>(features[i].pt.y,features[i].pt.x) = pixel;
-				frame.at<Vec3b>(features[i].pt.y+1,features[i].pt.x) = pixel;
-				frame.at<Vec3b>(features[i].pt.y-1,features[i].pt.x) = pixel;
-				frame.at<Vec3b>(features[i].pt.y,features[i].pt.x+1) = pixel;
-				frame.at<Vec3b>(features[i].pt.y,features[i].pt.x-1) = pixel;
+				dispFrame.at<Vec3b>(features[i].pt.y,features[i].pt.x) = pixel;
+				dispFrame.at<Vec3b>(features[i].pt.y+1,features[i].pt.x) = pixel;
+				dispFrame.at<Vec3b>(features[i].pt.y-1,features[i].pt.x) = pixel;
+				dispFrame.at<Vec3b>(features[i].pt.y,features[i].pt.x+1) = pixel;
+				dispFrame.at<Vec3b>(features[i].pt.y,features[i].pt.x-1) = pixel;
 			}
 			feats.push_back(Point2f(features[i].pt.x,features[i].pt.y));
 		}
@@ -114,7 +113,7 @@ int main(int argc,char** argv){
 					}
 				}
 
-				Mat homograph = findHomography(srcPts,dstPts,CV_RANSAC,0.2,mask);
+				Mat homograph = findHomography(srcPts,dstPts,CV_RANSAC,1,mask);
 				if(transform.empty()){
 					transform = homograph.clone();
 				} else {
@@ -139,7 +138,7 @@ int main(int argc,char** argv){
 								red = 255;
 							}
 						}
-						line(frame,srcPts[i],dstPts[i],Scalar(blue,green,red));
+						line(dispFrame,srcPts[i],dstPts[i],Scalar(blue,green,red));
 					}
 				}
 			
@@ -164,7 +163,7 @@ int main(int argc,char** argv){
 						if(!(pos.y < 0 || pos.y > imgSize.height)){
 							for(int i = -4;i <= 4;i++){
 								for(int j = -4;j <= 4;j++){
-									frame.at<Vec3b>(out_pts[k].y + j,out_pts[k].x + i) = Vec3b(255,0,255);
+									dispFrame.at<Vec3b>(out_pts[k].y + j,out_pts[k].x + i) = Vec3b(255,0,255);
 								}
 							}
 						}
@@ -220,7 +219,7 @@ int main(int argc,char** argv){
 		prevFeatures = feats;
 		prevFeed = feed.clone(); 
 	
-		imshow("MainWindow",frame);
+		imshow("MainWindow",dispFrame);
 
 		int key = waitKey(10);
 		if(key != -1){
@@ -228,6 +227,9 @@ int main(int argc,char** argv){
 			if(key == 's') outlierMode = (outlierMode + 1) % 2;
 		}
 	}
+
+
+	imwrite("mosaic.jpg",fullImg);
 
 	return 0;
 }

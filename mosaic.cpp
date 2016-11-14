@@ -69,7 +69,7 @@ int main(int argc,char** argv){
 	feat = FastFeatureDetector();
 
 	Mat transform;
-	
+
 	while(cap.read(feed)){
 		resize(feed,feed,imgSize);
 		Mat frame = feed.clone();
@@ -117,7 +117,7 @@ int main(int argc,char** argv){
 				if(transform.empty()){
 					transform = homograph.clone();
 				} else {
-					transform = transform * homograph;
+					transform = homograph * transform;//transform * homograph.clone();
 				}
 
 				Mat invertMat;
@@ -212,7 +212,7 @@ int main(int argc,char** argv){
 				} else {
 					fullImg = warpFrame.clone();
 				}
-				imshow("wat",fullImg);
+				imshow("Pano",fullImg);
 			}
 		}	
 
